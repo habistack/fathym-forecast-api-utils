@@ -1,5 +1,12 @@
 let https = require('https')
 
+function fail(context, message) {
+  context.done(null, {
+    status: 500,
+    body: message
+  })
+}
+
 module.exports = function(context, req) {
   let origin         = req.query.origin         || (req.body && req.body.origin)
   let destination    = req.query.destination    || (req.body && req.body.destination)
@@ -32,6 +39,10 @@ module.exports = function(context, req) {
     })
     resp.on("end", () => {
       let azureMapsResponse = JSON.parse(azureMapsAPIBody)
+      if(!azureMapsResponse.routes) {
+        fail(context, "No route found.")
+        return
+      }
       let route = azureMapsResponse.routes[0]
       let timeSec = route.summary.travelTimeInSeconds
       let points = route.legs[0].points
@@ -90,7 +101,8 @@ module.exports = function(context, req) {
 
           // Final, successful, return
           context.done(null, {body: JSON.stringify(outData),
-                              headers: {"Content-Type": "application/json"}})
+                              headers: {"Content-Type": "application/json",
+                                        "Access-Control-Allow-Origin": "*"}})
         })
       })
       forecastAPIRequest.on("error", (error) => {
@@ -100,10 +112,7 @@ module.exports = function(context, req) {
       forecastAPIRequest.end()
     })
   }).on("error", (error) => {
-    context.done(null, {
-      status: 500,
-      body: error
-    })
+    fail(context, error)
   })
   azureMapsRequest.end()
 }

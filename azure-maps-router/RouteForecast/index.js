@@ -1,15 +1,109 @@
-module.exports = async function (context, req) {
-  // How to get params:
-  // req.query.name || (req.body && req.body.name)
+let https = require('https')
 
-  var outData = [{"lat":40.02105,"lng":-105.26452,"relative-seconds":0,"values":[{"value":310.38082878112795,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":40.01829,"lng":-105.26313,"relative-seconds":64,"values":[{"value":310.4405448489719,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":40.01721,"lng":-105.2586,"relative-seconds":123,"values":[{"value":310.4743474324544,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":40.01354,"lng":-105.25872,"relative-seconds":183,"values":[{"value":310.69830627441405,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":40.00878,"lng":-105.25874,"relative-seconds":243,"values":[{"value":310.733723449707,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":40.0014,"lng":-105.25872,"relative-seconds":303,"values":[{"value":310.769140625,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.9964,"lng":-105.25215,"relative-seconds":363,"values":[{"value":310.80455780029297,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.98691,"lng":-105.23555,"relative-seconds":422,"values":[{"value":309.4456867726644,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.9851,"lng":-105.23162,"relative-seconds":482,"values":[{"value":309.47797894795735,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.97997,"lng":-105.22051,"relative-seconds":542,"values":[{"value":309.51027112325033,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.96826,"lng":-105.19256,"relative-seconds":602,"values":[{"value":307.21770218743217,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.96384,"lng":-105.18126,"relative-seconds":662,"values":[{"value":309.2519561682807,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.95515,"lng":-105.16016,"relative-seconds":721,"values":[{"value":307.2141441684299,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.94411,"lng":-105.14477,"relative-seconds":781,"values":[{"value":307.23914467705623,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.93727,"lng":-105.13292,"relative-seconds":841,"values":[{"value":309.2826868523492,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.92432,"lng":-105.11101,"relative-seconds":901,"values":[{"value":306.4141456943088,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.91424,"lng":-105.09125,"relative-seconds":961,"values":[{"value":310.0794587029351,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.90208,"lng":-105.08208,"relative-seconds":1020,"values":[{"value":310.11326128641764,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.88946,"lng":-105.07365,"relative-seconds":1080,"values":[{"value":310.2006055450439,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.87419,"lng":-105.06245,"relative-seconds":1140,"values":[{"value":310.23810605367026,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.86344,"lng":-105.05662,"relative-seconds":1200,"values":[{"value":310.2328461456299,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.84881,"lng":-105.04671,"relative-seconds":1260,"values":[{"value":310.12560707092285,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.83888,"lng":-105.03432,"relative-seconds":1324,"values":[{"value":310.16560761345755,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.83192,"lng":-105.01075,"relative-seconds":1383,"values":[{"value":309.9753997802734,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.82767,"lng":-104.99542,"relative-seconds":1443,"values":[{"value":310.01394195556645,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.82661,"lng":-104.98404,"relative-seconds":1503,"values":[{"value":310.0524841308594,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.81858,"lng":-104.98351,"relative-seconds":1563,"values":[{"value":310.09102630615234,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.80802,"lng":-104.98332,"relative-seconds":1623,"values":[{"value":310.3358184814453,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.79893,"lng":-104.98645,"relative-seconds":1682,"values":[{"value":310.3767912038167,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.78503,"lng":-104.98956,"relative-seconds":1742,"values":[{"value":310.4767569902208,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.77909,"lng":-104.98959,"relative-seconds":1802,"values":[{"value":310.5205074988471,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.77052,"lng":-104.99208,"relative-seconds":1862,"values":[{"value":310.5642580074734,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.76688,"lng":-104.99507,"relative-seconds":1922,"values":[{"value":310.60800851609974,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.7618,"lng":-104.99499,"relative-seconds":1981,"values":[{"value":310.65102984958224,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.75843,"lng":-104.99314,"relative-seconds":2041,"values":[{"value":310.77307896931967,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.7552,"lng":-104.99315,"relative-seconds":2101,"values":[{"value":310.8116211446127,"var":{"level":"Surface","name":"Temperature"}}]},{"lat":39.75282,"lng":-104.99972,"relative-seconds":2152,"values":[{"value":310.8443819936117,"var":{"level":"Surface","name":"Temperature"}}]}]
+module.exports = function(context, req) {
+  let origin         = req.query.origin         || (req.body && req.body.origin)
+  let destination    = req.query.destination    || (req.body && req.body.destination)
+  let departAt       = req.query.departAt       || (req.body && req.body.departAt)
+  let includeAlts    = req.query.includeAlts    || (req.body && req.body.includeAlts)
+  let azureMapsKey   = req.query.azureMapsKey   || (req.body && req.body.azureMapsKey)
+  let forecastAPIKey = req.query.forecastAPIKey || (req.body && req.body.forecastAPIKey)
 
-  let now = Math.round((new Date).getTime() / 1000)
-  for( let i=0; i<outData.length; i++) {
-    outData[i]["absolute-seconds"] = outData[i]["relative-seconds"] + now
-    delete outData[i]["relative-seconds"]
+  let nowSec = Math.round((new Date).getTime() / 1000)
+  let departAtSec = parseInt(departAt)
+
+  let departAtChunk = "";
+  if( departAtSec > (120+nowSec) )
+    departAtChunk = "&departAt=" + (new Date(1000*departAtSec)).toISOString()
+
+  context.log("RouteForecast request: origin="+origin+" destination="+destination)
+
+  let azureMapsPath = "/route/directions/json?api-version=1.0&query=" +
+      origin + ":" + destination + departAtChunk + "&subscription-key=" + azureMapsKey
+
+  let requestOptions = {
+    host: "atlas.microsoft.com",
+    path: azureMapsPath
   }
 
-  context.done(null, {body: JSON.stringify(outData),
-                      headers: {"Content-Type": "application/json"}})
-};
+  let azureMapsRequest = https.get(requestOptions, (resp) => {
+    let azureMapsAPIBody = ""
+    resp.on("data", (chunk) => {
+      azureMapsAPIBody += chunk
+    })
+    resp.on("end", () => {
+      let azureMapsResponse = JSON.parse(azureMapsAPIBody)
+      let route = azureMapsResponse.routes[0]
+      let timeSec = route.summary.travelTimeInSeconds
+      let points = route.legs[0].points
+      let pointCount = points.length
+      let lastSeenMinute = 0
+
+      // Sample route data down to one point per minute.
+      let pointData = []
+      for(let i=0; i<pointCount-1; i++) {
+        let t = Math.round(timeSec * (i/pointCount))
+        if( t >= lastSeenMinute ) {
+          pointData.push({lat: points[i].latitude,
+                          lng: points[i].longitude,
+                          "relative-seconds": t})
+          lastSeenMinute += 60
+        }
+      }
+      pointData.push({lat: points[pointCount-1].latitude,
+                      lng: points[pointCount-1].longitude,
+                      "relative-seconds": timeSec})
+
+      // TODO: accept list of forecast variables as a parameter
+      let data = JSON.stringify({variables: [{"name":"Temperature","level":"Surface"}],
+                                 points: pointData})
+
+      let options = {
+        hostname: "fathym-forecast-int.azure-api.net",
+        path: "/api/v0/point-query",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": data.length,
+          "Ocp-Apim-Subscription-Key": forecastAPIKey
+        }
+      }
+
+      let forecastAPIRequest = https.request(options, (res) => {
+        let forecastAPIBody = ""
+        res.on("data", (chunk) => {
+          forecastAPIBody += chunk
+        })
+        res.on("end", () => {
+          let forecastAPIResponse = JSON.parse(forecastAPIBody)
+          let outData = []
+          for( let i=0; i<pointData.length; i++) {
+            outData[i] = {
+              lat: pointData[i].lat,
+              lng: pointData[i].lng,
+              // TODO: assumption here, that there is only one variable
+              values: [{value: forecastAPIResponse[0].values[i],
+                        var: {name: forecastAPIResponse[0].name,
+                              level: forecastAPIResponse[0].level}}],
+              "absolute-seconds": pointData[i]["relative-seconds"] + nowSec
+            }
+          }
+
+          // Final, successful, return
+          context.done(null, {body: JSON.stringify(outData),
+                              headers: {"Content-Type": "application/json"}})
+        })
+      })
+      forecastAPIRequest.on("error", (error) => {
+        console.error(error)
+      })
+      forecastAPIRequest.write(data)
+      forecastAPIRequest.end()
+    })
+  }).on("error", (error) => {
+    context.done(null, {
+      status: 500,
+      body: error
+    })
+  })
+  azureMapsRequest.end()
+}

@@ -3,16 +3,22 @@ let https = require('https')
 module.exports = function(context, req) {
   let origin         = req.query.origin         || (req.body && req.body.origin)
   let destination    = req.query.destination    || (req.body && req.body.destination)
+  let departAt       = req.query.departAt       || (req.body && req.body.departAt)
   let includeAlts    = req.query.includeAlts    || (req.body && req.body.includeAlts)
   let azureMapsKey   = req.query.azureMapsKey   || (req.body && req.body.azureMapsKey)
   let forecastAPIKey = req.query.forecastAPIKey || (req.body && req.body.forecastAPIKey)
 
   let nowSec = Math.round((new Date).getTime() / 1000)
+  let departAtSec = parseInt(departAt)
+
+  let departAtChunk = "";
+  if( departAtSec > (120+nowSec) )
+    departAtChunk = "&departAt=" + (new Date(1000*departAtSec)).toISOString()
 
   context.log("RouteForecast request: origin="+origin+" destination="+destination)
 
   let azureMapsPath = "/route/directions/json?api-version=1.0&query=" +
-      origin + ":" + destination + "&subscription-key=" + azureMapsKey
+      origin + ":" + destination + departAtChunk + "&subscription-key=" + azureMapsKey
 
   let requestOptions = {
     host: "atlas.microsoft.com",

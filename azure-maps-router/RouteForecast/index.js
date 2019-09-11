@@ -85,16 +85,12 @@ module.exports = function(context, req) {
           forecastAPIBody += chunk
         })
         res.on("end", () => {
-          let forecastAPIResponse = JSON.parse(forecastAPIBody)
-          let outData = []
+          let outData = {points: []}
+          outData.forecast = JSON.parse(forecastAPIBody)
           for( let i=0; i<pointData.length; i++) {
-            outData[i] = {
+            outData.points[i] = {
               lat: pointData[i].lat,
               lng: pointData[i].lng,
-              // TODO: assumption here, that there is only one variable
-              values: [{value: forecastAPIResponse[0].values[i],
-                        var: {name: forecastAPIResponse[0].name,
-                              level: forecastAPIResponse[0].level}}],
               "absolute-seconds": pointData[i]["relative-seconds"] + nowSec
             }
           }

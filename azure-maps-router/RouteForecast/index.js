@@ -32,12 +32,14 @@ module.exports = function(context, req) {
     path: azureMapsPath
   }
 
+  let timeMapStart = new Date
   let azureMapsRequest = https.get(requestOptions, (resp) => {
     let azureMapsAPIBody = ""
     resp.on("data", (chunk) => {
       azureMapsAPIBody += chunk
     })
     resp.on("end", () => {
+      let mapTimeMs = new Date - timeMapStart
       let azureMapsResponse = JSON.parse(azureMapsAPIBody)
       if(!azureMapsResponse.routes) {
         fail(context, "No route found.")
@@ -79,12 +81,14 @@ module.exports = function(context, req) {
         }
       }
 
+      let timeForecastStart = new Date
       let forecastAPIRequest = https.request(options, (res) => {
         let forecastAPIBody = ""
         res.on("data", (chunk) => {
           forecastAPIBody += chunk
         })
         res.on("end", () => {
+          let forecastTimeMs = new Date - timeForecastStart
           let outData = {points: []}
           let forecastResponse = JSON.parse(forecastAPIBody)
           outData.forecast = {surfaceTemperature: forecastResponse[0].values,
@@ -96,6 +100,9 @@ module.exports = function(context, req) {
               "absoluteSeconds": pointData[i]["relative-seconds"] + nowSec
             }
           }
+
+          context.log("RouteForecast complete: point-count=" + outData.points.length +
+                      " mapTimeMs=" + mapTimeMs + " forecastTimeMS=" + forecastTimeMs)
 
           // Final, successful, return
           context.done(null, {body: JSON.stringify(outData),

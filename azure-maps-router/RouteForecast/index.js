@@ -67,7 +67,9 @@ module.exports = function(context, req) {
                       "relative-seconds": timeSec})
 
       let data = JSON.stringify({variables: [{"name":"Temperature","level":"Surface"},
-                                             {"name":"RoadTemperature","level":"Surface"}],
+                                             {"name":"RoadTemperature","level":"Surface"},
+                                             {"name":"WindSpeed","level":"10Meters"},
+                                             {"name":"WindDirection","level":"10Meters"}],
                                  points: pointData})
 
       let options = {
@@ -92,7 +94,9 @@ module.exports = function(context, req) {
           let outData = {points: []}
           let forecastResponse = JSON.parse(forecastAPIBody)
           outData.forecast = {surfaceTemperature: forecastResponse[0].values,
-                              roadTemperature: forecastResponse[1].values}
+                              roadTemperature: forecastResponse[1].values,
+                              windSpeed: forecastResponse[2].values,
+                              windDirection: forecastResponse[3].values}
           for( let i=0; i<pointData.length; i++) {
             outData.points[i] = {
               lat: pointData[i].lat,

@@ -7,6 +7,10 @@ function fail(context, message) {
   })
 }
 
+function dot(v1, v2) {
+  return v1[0]*v2[0]+v1[1]*v2[1]
+}
+
 module.exports = function(context, req) {
   let origin         = req.query.origin         || (req.body && req.body.origin)
   let destination    = req.query.destination    || (req.body && req.body.destination)
@@ -105,6 +109,19 @@ module.exports = function(context, req) {
                               snowDepth:          forecastResponse[5].values,
                               windSpeed:          forecastResponse[6].values,
                               windDirection:      forecastResponse[7].values}
+          let crosswindRisk = []
+          for( let i=0; i<pointData.length-1; i++) {
+            let travelDirection = [pointData[i+1].lat - pointData[i].lat,
+                                   pointData[i+1].lng - pointData[i].lng]
+            let windDirection = [Math.sin(outData.forecast.windDirection[i]),
+                                 Math.cos(outData.forecast.windDirection[i])]
+            let crosswind = Math.abs(dot(travelDirection, windDirection))
+            let normalizedWindSpeed = Math.min(outData.forecast.windSpeed[i], 20) / 10.0
+            crosswindRisk[i] = (1-crosswind)*normalizedWindSpeed
+          }
+          crosswindRisk[crosswindRisk.length-1] = crosswindRisk[crosswindRisk.length-2]
+          outData.forecast.crosswindRisk = crosswindRisk
+
           for( let i=0; i<pointData.length; i++) {
             outData.points[i] = {
               lat: pointData[i].lat,

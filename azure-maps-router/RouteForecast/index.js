@@ -113,8 +113,8 @@ module.exports = function(context, req) {
           for( let i=0; i<pointData.length-1; i++) {
             let travelDirection = [pointData[i+1].lng - pointData[i].lng,
                                    pointData[i+1].lat - pointData[i].lat]
-            let windDirection = [Math.sin(outData.forecast.windDirection[i]),
-                                 Math.cos(outData.forecast.windDirection[i])]
+            let windDirRadians = outData.forecast.windDirection[i]*0.0174533
+            let windDirection = [Math.sin(windDirRadians),Math.cos(windDirRadians)]
             let crosswind = Math.abs(dot(travelDirection, windDirection))
             let normalizedWindSpeed = Math.min(outData.forecast.windSpeed[i], 20) / 10.0
             crosswindRisk[i] = (1-crosswind)*normalizedWindSpeed

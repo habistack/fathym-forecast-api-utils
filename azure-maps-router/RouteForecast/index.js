@@ -111,8 +111,8 @@ module.exports = function(context, req) {
                               windDirection:      forecastResponse[7].values}
           let crosswindRisk = []
           for( let i=0; i<pointData.length-1; i++) {
-            let travelDirection = [pointData[i+1].lat - pointData[i].lat,
-                                   pointData[i+1].lng - pointData[i].lng]
+            let travelDirection = [pointData[i+1].lng - pointData[i].lng,
+                                   pointData[i+1].lat - pointData[i].lat]
             let windDirection = [Math.sin(outData.forecast.windDirection[i]),
                                  Math.cos(outData.forecast.windDirection[i])]
             let crosswind = Math.abs(dot(travelDirection, windDirection))

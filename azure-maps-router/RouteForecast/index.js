@@ -119,7 +119,7 @@ module.exports = function(context, req) {
             let normalizedWindSpeed = Math.min(outData.forecast.windSpeed[i], 20) / 10.0
             crosswindRisk[i] = (1-crosswind)*normalizedWindSpeed
           }
-          crosswindRisk[crosswindRisk.length-1] = crosswindRisk[crosswindRisk.length-2]
+          crosswindRisk.push(crosswindRisk[crosswindRisk.length-1])
           outData.forecast.crosswindRisk = crosswindRisk
 
           for( let i=0; i<pointData.length; i++) {

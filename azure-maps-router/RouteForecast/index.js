@@ -22,14 +22,18 @@ module.exports = function(context, req) {
   let nowSec = Math.round((new Date).getTime() / 1000)
   let departAtSec = parseInt(departAt)
 
-  let departAtChunk = "";
+  let departAtChunk = ""
   if( departAtSec > (120+nowSec) )
     departAtChunk = "&departAt=" + (new Date(1000*departAtSec)).toISOString()
 
-  context.log("RouteForecast request: origin="+origin+" destination="+destination)
+  let alternativesChunk = ""
+  if( includeAlts == "true" )
+    alternativesChunk = "&maxAlternatives=2"
 
-  let azureMapsPath = "/route/directions/json?api-version=1.0&query=" +
-      origin + ":" + destination + departAtChunk + "&subscription-key=" + azureMapsKey
+  context.log(`RouteForecast request: origin=${origin} destination=${destination} departAt=${departAt} includeAlts=${includeAlts}`)
+
+  let azureMapsPath = "/route/directions/json?api-version=1.0&query=" + origin + ":" + destination +
+      departAtChunk + alternativesChunk + "&subscription-key=" + azureMapsKey
 
   let requestOptions = {
     host: "atlas.microsoft.com",
@@ -39,37 +43,49 @@ module.exports = function(context, req) {
   let timeMapStart = new Date
   let azureMapsRequest = https.get(requestOptions, (resp) => {
     let azureMapsAPIBody = ""
-    resp.on("data", (chunk) => {
-      azureMapsAPIBody += chunk
-    })
+    resp.on("data", (chunk) => { azureMapsAPIBody += chunk })
     resp.on("end", () => {
       let mapTimeMs = new Date - timeMapStart
       let azureMapsResponse = JSON.parse(azureMapsAPIBody)
-      if(!azureMapsResponse.routes) {
+      if( !azureMapsResponse.routes ) {
         fail(context, "No route found.")
         return
       }
-      let route = azureMapsResponse.routes[0]
-      let timeSec = route.summary.travelTimeInSeconds
-      let points = route.legs[0].points
-      let pointCount = points.length
-      let lastSeenMinute = 0
-
+      let routes = azureMapsResponse.routes
+      let routeCount = routes.length
+      let routePoints = []
       // Sample route data down to one point per minute.
-      let pointData = []
-      for(let i=0; i<pointCount-1; i++) {
-        let t = Math.round(timeSec * (i/pointCount))
-        if( t >= lastSeenMinute ) {
-          pointData.push({lat: points[i].latitude,
-                          lng: points[i].longitude,
-                          "relative-seconds": t})
-          lastSeenMinute += 60
+      for( let i=0; i<routeCount; i++ ) {
+        let route = routes[i]
+        let timeSec = route.summary.travelTimeInSeconds
+        let points = route.legs[0].points
+        let pointCount = points.length
+        let lastSeenMinute = 0
+        let pointData = []
+        for( let i=0; i<pointCount-1; i++ ) {
+          let t = Math.round(timeSec * (i/pointCount))
+          if( t >= lastSeenMinute ) {
+            pointData.push({lat: points[i].latitude,
+                            lng: points[i].longitude,
+                            "relative-seconds": t})
+            lastSeenMinute += 60
+          }
         }
+        pointData.push({lat: points[pointCount-1].latitude,
+                        lng: points[pointCount-1].longitude,
+                        "relative-seconds": timeSec})
+        routePoints.push(pointData)
       }
-      pointData.push({lat: points[pointCount-1].latitude,
-                      lng: points[pointCount-1].longitude,
-                      "relative-seconds": timeSec})
 
+      // Capture some route metadata, so the individual routes can be reconstructed
+      let routeMetas = []
+      for( let i=0; i<routeCount; i++ ) {
+        let pointOffset = 0
+        if( i>0 ) pointOffset = routeMetas[i-1].pointOffset + routeMetas[i-1].pointCount
+        routeMetas.push({pointOffset: pointOffset, pointCount: routePoints[i].length})
+      }
+
+      let allPoints = [].concat.apply([], routePoints)
       let data = JSON.stringify({variables: [{"name":"Temperature","level":"Surface"},
                                              {"name":"RoadTemperature","level":"Surface"},
                                              {"name":"RoadState","level":"Surface"},
@@ -78,7 +94,7 @@ module.exports = function(context, req) {
                                              {"name":"SnowDepth", "level":"Surface"},
                                              {"name":"WindSpeed","level":"10Meters"},
                                              {"name":"WindDirection","level":"10Meters"}],
-                                 points: pointData})
+                                 points: allPoints})
 
       let options = {
         hostname: "fathym-forecast-int.azure-api.net",
@@ -94,44 +110,56 @@ module.exports = function(context, req) {
       let timeForecastStart = new Date
       let forecastAPIRequest = https.request(options, (res) => {
         let forecastAPIBody = ""
-        res.on("data", (chunk) => {
-          forecastAPIBody += chunk
-        })
+        res.on("data", (chunk) => { forecastAPIBody += chunk })
         res.on("end", () => {
           let forecastTimeMs = new Date - timeForecastStart
-          let outData = {points: []}
-          let forecastResponse = JSON.parse(forecastAPIBody)
-          outData.forecast = {surfaceTemperature: forecastResponse[0].values,
-                              roadTemperature:    forecastResponse[1].values,
-                              roadState:          forecastResponse[2].values,
-                              routeDelayRisk:     forecastResponse[3].values,
-                              precipitationRate:  forecastResponse[4].values,
-                              snowDepth:          forecastResponse[5].values,
-                              windSpeed:          forecastResponse[6].values,
-                              windDirection:      forecastResponse[7].values}
-          let crosswindRisk = []
-          for( let i=0; i<pointData.length-1; i++) {
-            let travelDirection = [pointData[i+1].lng - pointData[i].lng,
-                                   pointData[i+1].lat - pointData[i].lat]
-            let windDirRadians = outData.forecast.windDirection[i]*0.0174533
-            let windDirection = [Math.sin(windDirRadians),Math.cos(windDirRadians)]
-            let crosswind = Math.abs(dot(travelDirection, windDirection))
-            let normalizedWindSpeed = Math.min(outData.forecast.windSpeed[i], 20) / 10.0
-            crosswindRisk[i] = (1-crosswind)*normalizedWindSpeed
-          }
-          crosswindRisk.push(crosswindRisk[crosswindRisk.length-1])
-          outData.forecast.crosswindRisk = crosswindRisk
 
-          for( let i=0; i<pointData.length; i++) {
-            outData.points[i] = {
-              lat: pointData[i].lat,
-              lng: pointData[i].lng,
-              "absoluteSeconds": pointData[i]["relative-seconds"] + nowSec
+          let allOutPoints = []
+          for( let i=0; i<allPoints.length; i++) {
+            allOutPoints[i] = {
+              lat: allPoints[i].lat,
+              lng: allPoints[i].lng,
+              "absoluteSeconds": allPoints[i]["relative-seconds"] + nowSec
             }
           }
 
-          context.log("RouteForecast complete: point-count=" + outData.points.length +
-                      " mapTimeMs=" + mapTimeMs + " forecastTimeMS=" + forecastTimeMs)
+          let forecastResponse = JSON.parse(forecastAPIBody)
+          let outRoutes = []
+          for( let i=0; i<routeCount; i++ ) {
+            let outRoute = {}
+            let start = routeMetas[i].pointOffset
+            let end = start + routeMetas[i].pointCount
+            outRoute.points = allOutPoints.slice(start, end)
+            outRoute.forecast = {surfaceTemperature: forecastResponse[0].values.slice(start, end),
+                                 roadTemperature:    forecastResponse[1].values.slice(start, end),
+                                 roadState:          forecastResponse[2].values.slice(start, end),
+                                 routeDelayRisk:     forecastResponse[3].values.slice(start, end),
+                                 precipitationRate:  forecastResponse[4].values.slice(start, end),
+                                 snowDepth:          forecastResponse[5].values.slice(start, end),
+                                 windSpeed:          forecastResponse[6].values.slice(start, end),
+                                 windDirection:      forecastResponse[7].values.slice(start, end)}
+            let crosswindRisk = []
+            for( let i=0; i<outRoute.points.length-1; i++ ) {
+              let travelDirection = [outRoute.points[i+1].lng - outRoute.points[i].lng,
+                                     outRoute.points[i+1].lat - outRoute.points[i].lat]
+              let windDirRadians = outRoute.forecast.windDirection[i]*0.0174533
+              let windDirection = [Math.sin(windDirRadians),Math.cos(windDirRadians)]
+              let crosswind = Math.abs(dot(travelDirection, windDirection))
+              let normalizedWindSpeed = Math.min(outRoute.forecast.windSpeed[i], 20) / 10.0
+              crosswindRisk[i] = (1-crosswind)*normalizedWindSpeed
+            }
+            crosswindRisk.push(crosswindRisk[crosswindRisk.length-1])
+            outRoute.forecast.crosswindRisk = crosswindRisk
+
+            outRoutes.push(outRoute)
+          }
+          let outData = {routes: outRoutes}
+
+          // TEMP: Backwards compatible shape:
+          outData.points = outRoutes[0].points
+          outData.forecast = outRoutes[0].forecast
+
+          context.log(`RouteForecast complete: route-count=${routeCount} point-count=${allOutPoints.length} mapTimeMs=${mapTimeMs} forecastTimeMs=${forecastTimeMs}`)
 
           // Final, successful, return
           context.done(null, {body: JSON.stringify(outData),

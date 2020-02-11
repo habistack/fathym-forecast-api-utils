@@ -24,6 +24,7 @@ const body = {variables: [{"name":"Temperature","level":"Surface"},
                           {"name":"RouteDelayRisk","level":"Surface"},
                           {"name":"PrecipitationRate","level":"Surface"},
                           {"name":"SnowDepth","level":"Surface"},
+                          {"name":"WindGust","level":"Surface"},
                           {"name":"WindSpeed","level":"10Meters"},
                           {"name":"WindDirection","level":"10Meters"}],
               points: points}

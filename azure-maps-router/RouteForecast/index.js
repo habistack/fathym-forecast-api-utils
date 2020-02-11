@@ -91,6 +91,7 @@ module.exports = function(context, req) {
                                              {"name":"RoadState","level":"Surface"},
                                              {"name":"RouteDelayRisk","level":"Surface"},
                                              {"name":"PrecipitationRate","level":"Surface"},
+                                             {"name":"PrecipitationRateMillisHr","level":"Surface"},
                                              {"name":"SnowDepth", "level":"Surface"},
                                              {"name":"WindSpeed","level":"10Meters"},
                                              {"name":"WindDirection","level":"10Meters"}],
@@ -130,14 +131,15 @@ module.exports = function(context, req) {
             let start = routeMetas[i].pointOffset
             let end = start + routeMetas[i].pointCount
             outRoute.points = allOutPoints.slice(start, end)
-            outRoute.forecast = {surfaceTemperature: forecastResponse[0].values.slice(start, end),
-                                 roadTemperature:    forecastResponse[1].values.slice(start, end),
-                                 roadState:          forecastResponse[2].values.slice(start, end),
-                                 routeDelayRisk:     forecastResponse[3].values.slice(start, end),
-                                 precipitationRate:  forecastResponse[4].values.slice(start, end),
-                                 snowDepth:          forecastResponse[5].values.slice(start, end),
-                                 windSpeed:          forecastResponse[6].values.slice(start, end),
-                                 windDirection:      forecastResponse[7].values.slice(start, end)}
+            outRoute.forecast = {surfaceTemperature:        forecastResponse[0].values.slice(start, end),
+                                 roadTemperature:           forecastResponse[1].values.slice(start, end),
+                                 roadState:                 forecastResponse[2].values.slice(start, end),
+                                 routeDelayRisk:            forecastResponse[3].values.slice(start, end),
+                                 precipitationRate:         forecastResponse[4].values.slice(start, end),
+                                 precipitationRateMillisHr: forecastResponse[5].values.slice(start, end),
+                                 snowDepth:                 forecastResponse[6].values.slice(start, end),
+                                 windSpeed:                 forecastResponse[7].values.slice(start, end),
+                                 windDirection:             forecastResponse[8].values.slice(start, end)}
             let crosswindRisk = []
             for( let i=0; i<outRoute.points.length-1; i++ ) {
               let travelDirection = [outRoute.points[i+1].lng - outRoute.points[i].lng,

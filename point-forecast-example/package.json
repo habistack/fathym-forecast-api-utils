@@ -9,7 +9,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "node-fetch": "2.6.0",
+    "node-fetch": "2.6.7",
     "table": "5.4.6"
   }
 }
